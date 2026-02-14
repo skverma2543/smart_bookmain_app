@@ -8,7 +8,8 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
   provider: "google",
   options: {
-    redirectTo: "http://localhost:3000/dashboard"
+    redirectTo: "https://smartbookmainapp.vercel.app/dashboard"
+
   }
 });
 
