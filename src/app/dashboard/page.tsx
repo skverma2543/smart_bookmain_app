@@ -119,6 +119,9 @@ export default function Dashboard() {
             </button>
           </div>
         ))}
+        {bookmarks.length === 0 && (
+    <p className="text-gray-500 mt-4">No bookmarks yet</p>
+  )}
       </div>
     </div>
   );
