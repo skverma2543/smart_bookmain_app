@@ -19,35 +19,36 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    const checkSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
+  const init = async () => {
+    // exchange OAuth code if present
+    await supabase.auth.exchangeCodeForSession();
 
-      if (!session) {
-        router.push("/login");
-      } else {
-        setUser(session.user);
-        fetchBookmarks();
-      }
-    };
+    const { data: { session } } = await supabase.auth.getSession();
 
-    checkSession();
-    const channel = supabase
-      .channel("realtime-bookmarks")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bookmarks" },
-        () => {
-          fetchBookmarks();
-        },
-      )
-      .subscribe();
+    if (!session) {
+      router.push("/login");
+    } else {
+      setUser(session.user);
+      fetchBookmarks();
+    }
+  };
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+  init();
+
+  const channel = supabase
+    .channel("realtime-bookmarks")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "bookmarks" },
+      () => fetchBookmarks()
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
+}, []);
+
 
   if (!user) return <div className="p-6">Loading...</div>;
 
