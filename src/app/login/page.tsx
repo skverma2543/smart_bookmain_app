@@ -7,8 +7,8 @@ export default function LoginPage() {
   const loginWithGoogle = async () => {
     await supabase.auth.signInWithOAuth({
   provider: "google",
-  options: {
-    redirectTo: "https://smartbookmainapp.vercel.app/dashboard"
+   options: {
+      redirectTo: `${window.location.origin}/dashboard`
 
   }
 });
