@@ -99,7 +99,10 @@ export default function Dashboard() {
             className="border p-2 mb-2 flex justify-between items-center"
           >
             <div>
-              <p className="font-semibold">{b.title}</p>
+              <a href={b.url} target="_blank" className="font-semibold underline">
+  {b.title}
+</a>
+
               <a href={b.url} target="_blank" className="text-blue-500">
                 {b.url}
               </a>
