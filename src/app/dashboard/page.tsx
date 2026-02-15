@@ -10,6 +10,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [bookmarks, setBookmarks] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
 
   const fetchBookmarks = async () => {
     const { data } = await supabase
@@ -22,8 +23,9 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
-      
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       if (!session) {
         router.push("/login");
@@ -40,7 +42,7 @@ export default function Dashboard() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "bookmarks" },
-        () => fetchBookmarks()
+        () => fetchBookmarks(),
       )
       .subscribe();
 
@@ -54,20 +56,16 @@ export default function Dashboard() {
   return (
     <motion.div
       className="relative min-h-screen flex items-center justify-center p-6 overflow-hidden"
-      
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
     >
-       <div className="absolute w-72 h-72 bg-blue-500/30 rounded-full blur-3xl top-10 left-10"></div>
-  <div className="absolute w-72 h-72 bg-purple-500/30 rounded-full blur-3xl bottom-10 right-10"></div>
+      <div className="absolute w-72 h-72 bg-blue-500/30 rounded-full blur-3xl top-10 left-10"></div>
+      <div className="absolute w-72 h-72 bg-purple-500/30 rounded-full blur-3xl bottom-10 right-10"></div>
 
       <div className="w-full max-w-2xl backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 shadow-xl">
-
         <div className="flex justify-between items-center mb-4">
-          <h1 className="text-2xl font-bold text-white">
-            My Bookmarks
-          </h1>
+          <h1 className="text-2xl font-bold text-white">My Bookmarks</h1>
 
           <button
             onClick={async () => {
@@ -87,12 +85,12 @@ export default function Dashboard() {
             const title = form.title.value;
             const url = form.url.value;
 
-            await supabase.from("bookmarks").insert([
-              { title, url, user_id: user.id }
-            ]);
+            await supabase
+              .from("bookmarks")
+              .insert([{ title, url, user_id: user.id }]);
 
             form.reset();
-            fetchBookmarks(); 
+            fetchBookmarks();
           }}
           className="flex flex-col gap-2 mb-6"
         >
@@ -117,44 +115,54 @@ export default function Dashboard() {
             Add Bookmark
           </motion.button>
         </form>
+        <input
+          type="text"
+          placeholder="Search bookmarks..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border border-white/20 bg-white/10 text-white p-2 rounded outline-none w-full mb-4"
+        />
 
         <div>
-          {bookmarks.map((b) => (
-            <motion.div
-              key={b.id}
-              whileHover={{ scale: 1.02 }}
-              className="bg-white/10 border border-white/20 p-3 rounded-lg mb-3 flex justify-between items-center"
-            >
-              <div>
-                <a
-                  href={b.url}
-                  target="_blank"
-                  className="text-white font-semibold underline"
-                >
-                  {b.title}
-                </a>
-                <p className="text-gray-300 text-sm break-all">{b.url}</p>
-              </div>
-
-              <button
-                onClick={async () => {
-                  await supabase.from("bookmarks").delete().eq("id", b.id);
-                  fetchBookmarks();
-                }}
-                className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded"
+          {bookmarks
+            .filter(
+              (b) =>
+                b.title.toLowerCase().includes(search.toLowerCase()) ||
+                b.url.toLowerCase().includes(search.toLowerCase()),
+            )
+            .map((b) => (
+              <motion.div
+                key={b.id}
+                whileHover={{ scale: 1.02 }}
+                className="bg-white/10 border border-white/20 p-3 rounded-lg mb-3 flex justify-between items-center"
               >
-                Delete
-              </button>
-            </motion.div>
-          ))}
+                <div>
+                  <a
+                    href={b.url}
+                    target="_blank"
+                    className="text-white font-semibold underline"
+                  >
+                    {b.title}
+                  </a>
+                  <p className="text-gray-300 text-sm break-all">{b.url}</p>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    await supabase.from("bookmarks").delete().eq("id", b.id);
+                    fetchBookmarks();
+                  }}
+                  className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded"
+                >
+                  Delete
+                </button>
+              </motion.div>
+            ))}
 
           {bookmarks.length === 0 && (
-            <p className="text-gray-400 mt-4 text-center">
-              No bookmarks yet
-            </p>
+            <p className="text-gray-400 mt-4 text-center">No bookmarks yet</p>
           )}
         </div>
-
       </div>
     </motion.div>
   );
