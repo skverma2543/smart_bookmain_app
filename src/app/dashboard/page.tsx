@@ -21,7 +21,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const init = async () => {
-      await supabase.auth.exchangeCodeForSession();
+      
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
