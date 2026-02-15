@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -19,111 +20,135 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-  const init = async () => {
-    // exchange OAuth code if present
-    await supabase.auth.exchangeCodeForSession();
+    const init = async () => {
+      await supabase.auth.exchangeCodeForSession();
+      const { data: { session } } = await supabase.auth.getSession();
 
-    const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login");
+      } else {
+        setUser(session.user);
+        fetchBookmarks();
+      }
+    };
 
-    if (!session) {
-      router.push("/login");
-    } else {
-      setUser(session.user);
-      fetchBookmarks();
-    }
-  };
+    init();
 
-  init();
+    const channel = supabase
+      .channel("realtime-bookmarks")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bookmarks" },
+        () => fetchBookmarks()
+      )
+      .subscribe();
 
-  const channel = supabase
-    .channel("realtime-bookmarks")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "bookmarks" },
-      () => fetchBookmarks()
-    )
-    .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
-  return () => {
-    supabase.removeChannel(channel);
-  };
-}, []);
-
-
-  if (!user) return <div className="p-6">Loading...</div>;
+  if (!user) return <div className="p-6 text-white">Loading...</div>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-xl mb-4">Dashboard</h1>
-      <button
-        onClick={async () => {
-          await supabase.auth.signOut();
-          router.push("/login");
-        }}
-        className="mb-4 bg-gray-800 text-white px-4 py-2 rounded"
-      >
-        Logout
-      </button>
+    <motion.div
+      className="min-h-screen flex items-center justify-center p-6"
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+    >
+      <div className="w-full max-w-2xl backdrop-blur-md bg-white/10 border border-white/20 rounded-xl p-6 shadow-xl">
 
-      <form
-        onSubmit={async (e) => {
-          e.preventDefault();
-          const form = e.target as any;
-          const title = form.title.value;
-          const url = form.url.value;
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold text-white">
+            My Bookmarks
+          </h1>
 
-          await supabase
-            .from("bookmarks")
-            .insert([{ title, url, user_id: user.id }]);
-
-          form.reset();
-          fetchBookmarks();
-        }}
-        className="flex flex-col gap-2 max-w-md"
-      >
-        <input
-          name="title"
-          placeholder="Title"
-          className="border p-2"
-          required
-        />
-        <input name="url" placeholder="URL" className="border p-2" required />
-        <button className="bg-black text-white p-2 rounded">
-          Add Bookmark
-        </button>
-      </form>
-
-      <div className="mt-6">
-        {bookmarks.map((b) => (
-          <div
-            key={b.id}
-            className="border p-2 mb-2 flex justify-between items-center"
+          <button
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.push("/login");
+            }}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-3 py-1 rounded"
           >
-            <div>
-              <a href={b.url} target="_blank" className="font-semibold underline">
-  {b.title}
-</a>
+            Logout
+          </button>
+        </div>
 
-              <a href={b.url} target="_blank" className="text-blue-500">
-                {b.url}
-              </a>
-            </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const form = e.target as any;
+            const title = form.title.value;
+            const url = form.url.value;
 
-            <button
-              onClick={async () => {
-                await supabase.from("bookmarks").delete().eq("id", b.id);
-                fetchBookmarks();
-              }}
-              className="bg-red-500 text-white px-3 py-1 rounded"
+            await supabase.from("bookmarks").insert([
+              { title, url, user_id: user.id }
+            ]);
+
+            form.reset();
+          }}
+          className="flex flex-col gap-2 mb-6"
+        >
+          <input
+            name="title"
+            placeholder="Bookmark title"
+            className="border border-white/20 bg-white/10 text-white p-2 rounded outline-none"
+            required
+          />
+          <input
+            name="url"
+            placeholder="https://example.com"
+            className="border border-white/20 bg-white/10 text-white p-2 rounded outline-none"
+            required
+          />
+
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded shadow"
+          >
+            Add Bookmark
+          </motion.button>
+        </form>
+
+        <div>
+          {bookmarks.map((b) => (
+            <motion.div
+              key={b.id}
+              whileHover={{ scale: 1.02 }}
+              className="bg-white/10 border border-white/20 p-3 rounded-lg mb-3 flex justify-between items-center"
             >
-              Delete
-            </button>
-          </div>
-        ))}
-        {bookmarks.length === 0 && (
-    <p className="text-gray-500 mt-4">No bookmarks yet</p>
-  )}
+              <div>
+                <a
+                  href={b.url}
+                  target="_blank"
+                  className="text-white font-semibold underline"
+                >
+                  {b.title}
+                </a>
+                <p className="text-gray-300 text-sm break-all">{b.url}</p>
+              </div>
+
+              <button
+                onClick={async () => {
+                  await supabase.from("bookmarks").delete().eq("id", b.id);
+                }}
+                className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded"
+              >
+                Delete
+              </button>
+            </motion.div>
+          ))}
+
+          {bookmarks.length === 0 && (
+            <p className="text-gray-400 mt-4 text-center">
+              No bookmarks yet
+            </p>
+          )}
+        </div>
+
       </div>
-    </div>
+    </motion.div>
   );
 }
