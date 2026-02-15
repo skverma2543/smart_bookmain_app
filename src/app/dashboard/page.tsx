@@ -87,6 +87,7 @@ export default function Dashboard() {
             ]);
 
             form.reset();
+            fetchBookmarks(); 
           }}
           className="flex flex-col gap-2 mb-6"
         >
@@ -133,6 +134,7 @@ export default function Dashboard() {
               <button
                 onClick={async () => {
                   await supabase.from("bookmarks").delete().eq("id", b.id);
+                  fetchBookmarks();
                 }}
                 className="bg-red-500 hover:bg-red-400 text-white px-3 py-1 rounded"
               >
